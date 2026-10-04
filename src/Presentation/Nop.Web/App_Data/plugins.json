@@ -1,0 +1,50 @@
+﻿{
+  "InstalledPluginNames": [
+    "Obsolete field, using only for compatibility"
+  ],
+  "InstalledPlugins": [
+    {
+      "SystemName": "Misc.Forums",
+      "Version": "5.00.7"
+    },
+    {
+      "SystemName": "Misc.RFQ",
+      "Version": "5.00.17"
+    },
+    {
+      "SystemName": "Shipping.FixedByWeightByTotal",
+      "Version": "5.00.8"
+    },
+    {
+      "SystemName": "Tax.FixedOrByCountryStateZip",
+      "Version": "5.00.5"
+    },
+    {
+      "SystemName": "Pickup.PickupInStore",
+      "Version": "5.00.7"
+    },
+    {
+      "SystemName": "DiscountRequirement.MustBeAssignedToCustomerRole",
+      "Version": "5.00.3"
+    },
+    {
+      "SystemName": "Misc.Polls",
+      "Version": "5.00.5"
+    },
+    {
+      "SystemName": "Nop.Plugin.Api.Rest",
+      "Version": "5.00.8"
+    },
+    {
+      "SystemName": "Misc.PunchOut",
+      "Version": "5.00.1"
+    },
+    {
+      "SystemName": "Payments.CheckMoneyOrder",
+      "Version": "5.00.3"
+    }
+  ],
+  "PluginNamesToUninstall": [],
+  "PluginNamesToDelete": [],
+  "PluginNamesToInstall": []
+}
