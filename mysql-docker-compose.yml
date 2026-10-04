@@ -1,6 +1,6 @@
 services:
     nopcommerce_web:
-        image: ghcr.io/babubahir/nopcommercerestapi:latest
+        build: .
         container_name: nopcommerce
         ports:
             - "80:80"
@@ -16,4 +16,4 @@ services:
           MYSQL_ROOT_PASSWORD: "nopCommerce_db_password"
 
 volumes:
-  nopcommerce_data:            
+  nopcommerce_data:

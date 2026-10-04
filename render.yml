@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: nopcommerce-web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    envVars:
+      - key: MYSQL_ROOT_PASSWORD
+        value: nopCommerce_db_password
+      - key: MYSQL_PASSWORD
+        value: nopCommerce_db_password
+      - key: MYSQL_DATABASE
+        value: nopcommerce
+    healthCheckPath: /
+    autoDeployTrigger: commit
