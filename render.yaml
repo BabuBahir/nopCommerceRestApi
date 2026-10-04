@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: nopcommerce-web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    autoDeploy: false
+    envVars:
+      - key: ConnectionStrings__DataProvider
+        value: mysql
+      - key: ConnectionStrings__ConnectionString
+        sync: false

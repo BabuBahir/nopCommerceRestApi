@@ -87,7 +87,11 @@ public partial class MigrationVersionInfo : BaseEntity, IVersionTableMetaData
     /// <summary>
     /// Create with primary key
     /// </summary>
-    public bool CreateWithPrimaryKey { get; } = false;
+    /// <remarks>
+    /// Some database providers (e.g. Aiven, PlanetScale) run with the "sql_require_primary_key" option enabled,
+    /// so the version table has to be created with a primary key
+    /// </remarks>
+    public bool CreateWithPrimaryKey { get; } = true;
 
     #endregion
 

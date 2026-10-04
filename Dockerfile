@@ -50,5 +50,7 @@ COPY --from=build /app/published .
 
 ENV ASPNETCORE_URLS=http://+:80
 EXPOSE 80
-                            
-ENTRYPOINT ["dotnet", "Nop.Web.dll"]
+
+# PaaS providers (Render, Railway, Fly...) inject the port to listen on via $PORT,
+# so bind to it when it is set and fall back to 80 for plain docker/docker-compose runs
+ENTRYPOINT ["/bin/sh", "-c", "export ASPNETCORE_URLS=\"http://+:${PORT:-80}\"; exec dotnet Nop.Web.dll"]
