@@ -1,0 +1,58 @@
+@model Nop.Plugin.Payments.RazorpayPayment.Models.CheckoutModel
+
+@{
+    Layout = "_ColumnsOne";
+    NopHtml.AddTitleParts("Razorpay Checkout");
+}
+
+<div class="page checkout-page">
+    <div class="page-title">
+        <h1>Confirm Payment</h1>
+    </div>
+    <div class="page-body">
+        <p>Please wait while we redirect you to the secure payment gateway...</p>
+        
+        <form action="@Model.CallbackUrl" method="POST" id="razorpay-form">
+            <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id" />
+            <input type="hidden" name="razorpay_order_id" id="razorpay_order_id" />
+            <input type="hidden" name="razorpay_signature" id="razorpay_signature" />
+        </form>
+
+        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+        <script asp-location="Footer">
+            var options = {
+                "key": "@Model.KeyId",
+                "amount": "@Model.Amount",
+                "currency": "@Model.Currency",
+                "name": "@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Model.Name ?? ""))",
+                "description": "@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Model.Description ?? ""))",
+                "order_id": "@Model.RazorpayOrderId",
+                "handler": function (response) {
+                    document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
+                    document.getElementById('razorpay_order_id').value = response.razorpay_order_id;
+                    document.getElementById('razorpay_signature').value = response.razorpay_signature;
+                    document.getElementById('razorpay-form').submit();
+                },
+                "prefill": {
+                    "name": "@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Model.Name ?? ""))",
+                    "email": "@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Model.Email ?? ""))",
+                    "contact": "@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Model.Contact ?? ""))"
+                },
+                "theme": {
+                    "color": "#3399cc"
+                }
+            };
+            
+            var rzp1 = new Razorpay(options);
+            
+            rzp1.on('payment.failed', function (response) {
+                console.error(response.error.description);
+                alert("Payment failed: " + response.error.description);
+            });
+            
+            // Auto open the Razorpay payment modal as soon as the script is loaded
+            rzp1.open();
+        </script>
+
+    </div>
+</div>
