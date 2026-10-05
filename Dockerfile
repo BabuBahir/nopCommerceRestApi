@@ -50,4 +50,4 @@ COPY --from=build /app/published .
 
 EXPOSE 80
 
-ENTRYPOINT ["sh", "-c", "echo \"Render PORT=$PORT\"; exec dotnet Nop.Web.dll --urls \"http://0.0.0.0:${PORT:-80}\""]
+ENTRYPOINT ["sh", "-c", "echo \"Render PORT is this=$PORT\"; exec dotnet Nop.Web.dll --urls \"http://0.0.0.0:${PORT:-80}\""]
