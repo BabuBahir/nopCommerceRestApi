@@ -822,7 +822,7 @@ public class LocalizationMigration : MigrationBase
             ["ReturnRequests.Withdrawal.Title"] = "Withdraw contract for <a href=\"{0}\">order #{1}</a>",
             ["ReturnRequests.WithdrawalForm"] = "Find your order",
             ["ReturnRequests.WithdrawalForm.Submit"] = "Continue",
-            ["ReturnRequests.WithdrawalForm.ConfirnationText"] = "If your details are correct, we've sent you a link to continue.",
+            ["ReturnRequests.WithdrawalForm.ConfirmationText"] = "If your details are correct, we've sent you a link to continue.",
             ["ReturnRequests.WithdrawalForm.EmailAddress.Required"] = "The Email address is required",
             ["ReturnRequests.WithdrawalForm.OrderNumber.Required"] = "The Order number is required",
 
@@ -883,6 +883,10 @@ public class LocalizationMigration : MigrationBase
             ["Products.Manufacturers.ResponsiblePerson"] = "Responsible person name: {0}",
             ["Products.Manufacturers.ResponsiblePersonPhysicalAddress"] = "Responsible person physical address: {0}",
             ["Products.Manufacturers.ResponsiblePersonElectronicAddress"] = "Responsible person electronic address: {0}",
+            //#8349
+            ["Account.Login.Phone.Required"] = "Phone number is required",
+            ["Admin.System.SystemInfo.UsedMemory"] = "Used memory (MB)",
+            ["Admin.System.SystemInfo.UsedMemory.Hint"] = "Total megabytes (MB) in use by the application.",
         });
 
         #endregion
