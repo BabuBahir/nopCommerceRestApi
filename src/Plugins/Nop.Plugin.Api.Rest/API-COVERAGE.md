@@ -106,15 +106,19 @@ not say what they were.
 | Own wishlist lines | `api-frontend/Wishlist/Wishlist` | `GET /api/rest/customer/me/wishlist` | DONE |
 | Storefront product | `api-frontend/Product/GetProductDetails` | `GET /api/rest/store/products/{id}` | DONE |
 
-## Phase 4 — Catalog and customer breadth (TODO)
+## Phase 4 — Catalog and customer breadth (PARTIAL)
 
-The largest remaining gaps, by official operation count. None is started.
+Customer writes and the guest purge landed; the rest is not started.
 
 | Area | Official ops | Official route | Status | Notes |
 |---|---|---|---|---|
+| Customer create | `api-backend/Customer/Create` | `POST /api/rest/customers` | DONE | no role in the payload, see note below |
+| Customer update | `api-backend/Customer/Update` | `PATCH /api/rest/customers/{id}` | DONE | no role in the payload, see note below |
+| Customer delete | `api-backend/Customer/Delete` | `DELETE /api/rest/customers/{id}` | DONE | |
+| Delete guests | `—` | `DELETE /api/rest/customers/guests` | DONE | bulk purge, all guests incl. those with a cart |
 | Product (remaining) | 41 total, ~6 done | `api-backend/Product/*` | PARTIAL | related products, new products, product pictures, videos, cross-sell, upsell, availability ranges, warehouse stock |
 | OrderProcessing (remaining) | 33 total, 3 done | `api-backend/OrderProcessing/*` | PARTIAL | refund, restore, ready for pickup, deliver, complete, re-order |
-| Customer (remaining) | 32 total, 3 done | `api-backend/Customer/*` | PARTIAL | create, update, delete, roles, reward points, password |
+| Customer (remaining) | 32 total, ~7 done | `api-backend/Customer/*` | PARTIAL | roles, reward points, password |
 | Category (remaining) | 18 total, 2 done | `api-backend/Category/*` | PARTIAL | create, update, delete |
 | CustomerRole | 16 | `api-backend/CustomerRole/*` | TODO | |
 | Manufacturer (remaining) | 15 total, 2 done | `api-backend/Manufacturer/*` | PARTIAL | create, update, delete |
