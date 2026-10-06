@@ -203,6 +203,10 @@ treated as 0 and a `pageSize` of 0 or less as the default.
 - `GET /api/rest/customers` - filters: email, firstName, lastName, phone, customerRoleId, createdFromUtc, createdToUtc, isActive
 - `GET /api/rest/customers/{id}`
 - `GET /api/rest/customers/{id}/addresses`
+- `POST /api/rest/customers` - create; body: `{ "email": "...", "password": "...", "username": "...", "firstName": "...", "lastName": "...", "phone": "...", "active": true }`. `email` and `password` are required, `username` only when the store has usernames enabled. A new customer always lands in the Registered role - roles are deliberately not accepted, so a key holder cannot create an administrator
+- `PATCH /api/rest/customers/{id}` - updates the supplied properties only: `email`, `username`, `firstName`, `lastName`, `phone`, `adminComment`, `active`, `password`. A string field is cleared by sending "" rather than null; `password` resets without checking the old one. Roles are not accepted, see above
+- `DELETE /api/rest/customers/{id}` - deletes one customer, returns 204
+- `DELETE /api/rest/customers/guests` - deletes all deletable guest customers and returns `{ "deleted": N }`. Guests with a shopping cart are included; guests with orders, reviews or blog comments, and system accounts, are always kept
 
 ### Other
 - `GET /api/rest/sales/totals`
