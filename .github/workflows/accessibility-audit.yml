@@ -22,11 +22,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           submodules: recursive
+
+      - name: Locate solution files
+        shell: bash
+        run: |
+          echo "Repository: $GITHUB_WORKSPACE"
+          echo "Solution files:"
+          find "$GITHUB_WORKSPACE" -maxdepth 5 \
+            \( -name '*.sln' -o -name '*.slnx' \) -print
+
+          if [ ! -f "$GITHUB_WORKSPACE/src/NopCommerce.sln" ]; then
+            echo "::error::Expected solution not found: src/NopCommerce.sln"
+            exit 1
+          fi
 
       - name: Run ReSharper InspectCode
         id: inspect
+        continue-on-error: true
         uses: JetBrains/ReSharper-InspectCode@v0.13
         with:
           solution: ./src/NopCommerce.sln
@@ -35,7 +48,25 @@ jobs:
           swea: true
           sEverity: HINT
           format: Html
-          output: accessibility-report.html
+          output: ${{ github.workspace }}/accessibility-report.html
+
+      - name: Diagnose generated report
+        if: always()
+        shell: bash
+        run: |
+          echo "InspectCode step outcome: ${{ steps.inspect.outcome }}"
+          echo "Searching for generated reports..."
+
+          find "$GITHUB_WORKSPACE" -maxdepth 5 -type f \
+            \( -iname '*report*.html' -o -iname '*inspectcode*.xml' \) \
+            -print
+
+          if [ -f "$GITHUB_WORKSPACE/accessibility-report.html" ]; then
+            echo "HTML report found:"
+            ls -lh "$GITHUB_WORKSPACE/accessibility-report.html"
+          else
+            echo "::warning::Expected HTML report was not generated."
+          fi
 
       - name: Upload accessibility audit report
         if: always()
@@ -45,3 +76,10 @@ jobs:
           path: accessibility-report.html
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Fail if inspection failed
+        if: steps.inspect.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::error::ReSharper InspectCode failed. Review its logs."
+          exit 1
