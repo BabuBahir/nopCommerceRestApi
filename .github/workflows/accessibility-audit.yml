@@ -29,14 +29,13 @@ jobs:
         id: inspect
         uses: JetBrains/ReSharper-InspectCode@v0.13
         with:
-          solution: ./NopCommerce.sln
+          solution: ./src/NopCommerce.sln
           tool-version: 2026.1.0.1
           dotnet-version: 10.x
           swea: true
           sEverity: HINT
           format: Html
           output: accessibility-report.html
-          upload-sarif: false
 
       - name: Upload accessibility audit report
         if: always()
