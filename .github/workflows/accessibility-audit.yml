@@ -1,4 +1,4 @@
-
+```yaml
 name: CSharp Accessibility Audit
 
 on:
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   accessibility-audit:
-    name: ReSharper Accessibility Analysis
+    name: C# Accessibility Audit
     runs-on: ubuntu-latest
 
     steps:
@@ -24,18 +24,18 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Locate solution files
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Verify solution
         shell: bash
         run: |
-          echo "Repository: $GITHUB_WORKSPACE"
-          echo "Solution files:"
-          find "$GITHUB_WORKSPACE" -maxdepth 5 \
-            \( -name '*.sln' -o -name '*.slnx' \) -print
-
-          if [ ! -f "$GITHUB_WORKSPACE/src/NopCommerce.sln" ]; then
-            echo "::error::Expected solution not found: src/NopCommerce.sln"
+          test -f src/NopCommerce.sln || {
+            echo "::error::src/NopCommerce.sln was not found"
             exit 1
-          fi
+          }
 
       - name: Run ReSharper InspectCode
         id: inspect
@@ -47,39 +47,98 @@ jobs:
           dotnet-version: 10.x
           swea: true
           sEverity: HINT
-          format: Html
-          output: ${{ github.workspace }}/accessibility-report.html
+          format: Xml
+          output: ${{ github.workspace }}/inspectcode-report.xml
 
-      - name: Diagnose generated report
+      - name: Filter accessibility findings
         if: always()
         shell: bash
         run: |
-          echo "InspectCode step outcome: ${{ steps.inspect.outcome }}"
-          echo "Searching for generated reports..."
+          python3 - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
 
-          find "$GITHUB_WORKSPACE" -maxdepth 5 -type f \
-            \( -iname '*report*.html' -o -iname '*inspectcode*.xml' \) \
-            -print
+          source = "inspectcode-report.xml"
+          destination = "accessibility-report.xml"
 
-          if [ -f "$GITHUB_WORKSPACE/accessibility-report.html" ]; then
-            echo "HTML report found:"
-            ls -lh "$GITHUB_WORKSPACE/accessibility-report.html"
-          else
-            echo "::warning::Expected HTML report was not generated."
-          fi
+          if not os.path.isfile(source):
+              print("No InspectCode report was generated.")
+              print("Inspect the Run ReSharper InspectCode logs for the actual failure.")
+              raise SystemExit(0)
 
-      - name: Upload accessibility audit report
+          root = ET.parse(source).getroot()
+
+          # Retain only findings whose inspection IDs or descriptions
+          # indicate reduced accessibility / unnecessary visibility.
+          keywords = (
+              "membercanbeprivate",
+              "membercanbeprotected",
+              "typecanbeprivate",
+              "typecanbeinternal",
+              "accessibility",
+              "can be made private",
+              "can be made protected",
+              "can be made internal",
+              "can be made less accessible",
+              "visibility can be reduced",
+          )
+
+          issue_types = {}
+          for item in root.iter("IssueType"):
+              issue_id = item.attrib.get("Id", "")
+              description = item.attrib.get("Description", "")
+              issue_types[issue_id] = (description, item.attrib)
+
+          selected_ids = {
+              issue_id
+              for issue_id, (description, _) in issue_types.items()
+              if any(word in (issue_id + " " + description).lower()
+                     for word in keywords)
+          }
+
+          filtered = ET.Element("AccessibilityAudit")
+          filtered_types = ET.SubElement(filtered, "IssueTypes")
+          filtered_issues = ET.SubElement(filtered, "Issues")
+
+          for issue_id in sorted(selected_ids):
+              description, attributes = issue_types[issue_id]
+              node = ET.SubElement(filtered_types, "IssueType", attributes)
+              node.text = description
+
+          count = 0
+          for issue in root.iter("Issue"):
+              issue_id = issue.attrib.get("TypeId", "")
+              if issue_id in selected_ids:
+                  filtered_issues.append(issue)
+                  count += 1
+
+          ET.ElementTree(filtered).write(
+              destination, encoding="utf-8", xml_declaration=True
+          )
+
+          print("Accessibility inspection IDs discovered:")
+          for issue_id in sorted(selected_ids):
+              print(f"  {issue_id}: {issue_types[issue_id][0]}")
+
+          print(f"Filtered findings: {count}")
+          print(f"Report: {destination}")
+          PY
+
+      - name: Upload accessibility report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nopcommerce-accessibility-audit
-          path: accessibility-report.html
+          name: csharp-accessibility-audit
+          path: |
+            accessibility-report.xml
+            inspectcode-report.xml
           if-no-files-found: warn
           retention-days: 30
 
-      - name: Fail if inspection failed
+      - name: Fail if InspectCode failed
         if: steps.inspect.outcome == 'failure'
         shell: bash
         run: |
-          echo "::error::ReSharper InspectCode failed. Review its logs."
+          echo "::error::InspectCode failed. Review its logs; the report may be incomplete."
           exit 1
+```
