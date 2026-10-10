@@ -2,11 +2,9 @@ name: CSharp Accessibility Audit
 
 on:
   push:
-    branches:
-      - develop
+    branches: [develop]
   pull_request:
-    branches:
-      - develop
+    branches: [develop]
   workflow_dispatch:
 
 permissions:
@@ -32,9 +30,21 @@ jobs:
         shell: bash
         run: |
           test -f src/NopCommerce.sln || {
-            echo "::error::src/NopCommerce.sln was not found"
+            echo "::error::src/NopCommerce.sln not found"
             exit 1
           }
+
+      - name: Enable internal accessibility inspection
+        shell: bash
+        run: |
+          # Enable ReSharper's normally-disabled "Member or type can be made internal" inspection.
+          # This changes only the CI workspace, not the repository commit.
+          touch src/.editorconfig
+          if ! grep -q 'resharper_member_can_be_internal_highlighting' src/.editorconfig; then
+            echo '' >> src/.editorconfig
+            echo '[*.cs]' >> src/.editorconfig
+            echo 'resharper_member_can_be_internal_highlighting = suggestion' >> src/.editorconfig
+          fi
 
       - name: Run ReSharper InspectCode
         id: inspect
@@ -43,9 +53,8 @@ jobs:
         with:
           solution: ./src/NopCommerce.sln
           tool-version: 2026.1.0.1
-          dotnet-version: 10.x
+          dotnet-version: '10.x'
           swea: true
-          sEverity: HINT
           format: Xml
           output: ${{ github.workspace }}/inspectcode-report.xml
 
@@ -60,70 +69,57 @@ jobs:
           source = "inspectcode-report.xml"
           destination = "accessibility-report.xml"
 
+          # Exact ReSharper inspection IDs.
+          wanted = {
+              "MemberCanBePrivate.Global",
+              "MemberCanBePrivate.Local",
+              "MemberCanBeProtected.Global",
+              "MemberCanBeProtected.Local",
+              "MemberCanBeInternal",
+          }
+
+          report = ET.Element("AccessibilityAudit")
+          output_types = ET.SubElement(report, "IssueTypes")
+          output_issues = ET.SubElement(report, "Issues")
+
           if not os.path.isfile(source):
-              print("No InspectCode report was generated.")
-              print("Inspect the Run ReSharper InspectCode logs for the actual failure.")
+              print("InspectCode did not generate its XML report.")
+              print("Check the InspectCode step for the original error.")
+              ET.ElementTree(report).write(
+                  destination, encoding="utf-8", xml_declaration=True
+              )
               raise SystemExit(0)
 
           root = ET.parse(source).getroot()
 
-          # Retain only findings whose inspection IDs or descriptions
-          # indicate reduced accessibility / unnecessary visibility.
-          keywords = (
-              "membercanbeprivate",
-              "membercanbeprotected",
-              "typecanbeprivate",
-              "typecanbeinternal",
-              "accessibility",
-              "can be made private",
-              "can be made protected",
-              "can be made internal",
-              "can be made less accessible",
-              "visibility can be reduced",
-          )
-
           issue_types = {}
           for item in root.iter("IssueType"):
               issue_id = item.attrib.get("Id", "")
-              description = item.attrib.get("Description", "")
-              issue_types[issue_id] = (description, item.attrib)
+              if issue_id in wanted:
+                  issue_types[issue_id] = item.attrib.copy()
 
-          selected_ids = {
-              issue_id
-              for issue_id, (description, _) in issue_types.items()
-              if any(word in (issue_id + " " + description).lower()
-                     for word in keywords)
-          }
-
-          filtered = ET.Element("AccessibilityAudit")
-          filtered_types = ET.SubElement(filtered, "IssueTypes")
-          filtered_issues = ET.SubElement(filtered, "Issues")
-
-          for issue_id in sorted(selected_ids):
-              description, attributes = issue_types[issue_id]
-              node = ET.SubElement(filtered_types, "IssueType", attributes)
-              node.text = description
+          for issue_id in sorted(issue_types):
+              ET.SubElement(output_types, "IssueType", issue_types[issue_id])
 
           count = 0
           for issue in root.iter("Issue"):
-              issue_id = issue.attrib.get("TypeId", "")
-              if issue_id in selected_ids:
-                  filtered_issues.append(issue)
+              if issue.attrib.get("TypeId", "") in wanted:
+                  output_issues.append(issue)
                   count += 1
 
-          ET.ElementTree(filtered).write(
+          ET.ElementTree(report).write(
               destination, encoding="utf-8", xml_declaration=True
           )
 
-          print("Accessibility inspection IDs discovered:")
-          for issue_id in sorted(selected_ids):
-              print(f"  {issue_id}: {issue_types[issue_id][0]}")
+          print("Selected inspection IDs:")
+          for issue_id in sorted(issue_types):
+              print(f"  {issue_id}")
 
-          print(f"Filtered findings: {count}")
-          print(f"Report: {destination}")
+          print(f"Accessibility findings: {count}")
+          print(f"Filtered report: {destination}")
           PY
 
-      - name: Upload accessibility report
+      - name: Upload accessibility audit reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -138,5 +134,5 @@ jobs:
         if: steps.inspect.outcome == 'failure'
         shell: bash
         run: |
-          echo "::error::InspectCode failed. Review its logs; the report may be incomplete."
+          echo "::error::InspectCode failed. The audit may be incomplete; review its logs."
           exit 1
