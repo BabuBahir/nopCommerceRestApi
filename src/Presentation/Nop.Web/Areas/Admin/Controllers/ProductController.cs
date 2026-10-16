@@ -2760,6 +2760,45 @@ public partial class ProductController : BaseAdminController
 
         return Json(model);
     }
+    [HttpGet]
+    [CheckPermission(StandardPermission.Catalog.PRODUCTS_VIEW)]
+    public virtual async Task<IActionResult> GetProductsByName(string name, int limit = 10)
+    {
+        if (string.IsNullOrWhiteSpace(name) || limit <= 0)
+            return Json(new List<object>());
+
+        if (limit > 50)
+            limit = 50;
+
+        int? vendorId = null;
+        var currentVendor = await _workContext.GetCurrentVendorAsync();
+        if (currentVendor != null)
+            vendorId = currentVendor.Id;
+
+        var products = await _productService.SearchProductsAsync(
+            pageIndex: 0,
+            pageSize: limit,
+            keywords: name,
+            vendorId: vendorId ?? 0,
+            showHidden: true);
+
+        var result = new List<object>(products.Count);
+        foreach (var p in products)
+        {
+            var defaultPicture = await _pictureService.GetProductPictureAsync(p, null);            var pictureUrl = defaultPicture != null ? await _pictureService.GetPictureUrlAsync(defaultPicture.Id, 50) : string.Empty;
+            result.Add(new
+            {
+                id = p.Id,
+                name = p.Name,
+                sku = p.Sku,
+                published = p.Published,
+                pictureId = defaultPicture?.Id ?? 0,
+                pictureUrl = pictureUrl ?? string.Empty
+            });
+        }
+
+        return Json(result);
+    }
 
     #endregion
 
