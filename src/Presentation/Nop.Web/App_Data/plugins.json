@@ -1,0 +1,18 @@
+﻿{
+  "InstalledPluginNames": [
+    "Obsolete field, using only for compatibility"
+  ],
+  "InstalledPlugins": [
+    {
+      "SystemName": "Nop.Plugin.Api.Rest",
+      "Version": "5.00.8"
+    },
+    {
+      "SystemName": "Misc.Mcp",
+      "Version": "1.00"
+    }
+  ],
+  "PluginNamesToUninstall": [],
+  "PluginNamesToDelete": [],
+  "PluginNamesToInstall": []
+}

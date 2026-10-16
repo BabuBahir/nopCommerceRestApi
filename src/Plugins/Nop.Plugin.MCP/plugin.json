@@ -1,0 +1,11 @@
+{
+  "Group": "Misc",
+  "FriendlyName": "MCP (Model Context Protocol)",
+  "SystemName": "Misc.Mcp",
+  "Version": "1.00",
+  "SupportedVersions": [ "5.00" ],
+  "Author": "https://github.com/BabuBahir",
+  "DisplayOrder": 1,
+  "FileName": "Nop.Plugin.Misc.Mcp.dll",
+  "Description": "Exposes a Model Context Protocol (MCP) server that lets AI agents operate your store via LLM tool calls."
+}

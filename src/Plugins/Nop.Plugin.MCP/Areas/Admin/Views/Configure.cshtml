@@ -1,0 +1,82 @@
+@model Nop.Plugin.Misc.Mcp.Areas.Admin.Models.McpSettings
+@using Nop.Plugin.Misc.Mcp
+@{
+    Layout = "_ConfigurePlugin";
+    NopHtml.SetActiveMenuItemSystemName(McpDefaults.SystemName);
+}
+
+<form asp-controller="McpAdmin" asp-action="Configure" method="post">
+    <div class="cards-group">
+        <div class="card card-default">
+            <div class="card-body">
+                @T("Plugins.Misc.Mcp.SecurityWarning")
+            </div>
+        </div>
+        <div class="card card-default">
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-label asp-for="Enabled" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="Enabled" />
+                        <span asp-validation-for="Enabled"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-label asp-for="EndpointPath" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="EndpointPath" />
+                        <span asp-validation-for="EndpointPath"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-label asp-for="ApiKey" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="ApiKey" />
+                        <span asp-validation-for="ApiKey"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">                        
+                        <nop-label asp-for="DefaultPageSize" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="DefaultPageSize" />
+                        <span asp-validation-for="DefaultPageSize"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-label asp-for="MaxPageSize" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="MaxPageSize" />
+                        <span asp-validation-for="MaxPageSize"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-label asp-for="AllowWriteTools" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="AllowWriteTools" />
+                        <span asp-validation-for="AllowWriteTools"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        &nbsp;
+                    </div>
+                    <div class="col-md-9">
+                        <button type="submit" name="save" class="btn btn-primary">@T("Admin.Common.Save")</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
