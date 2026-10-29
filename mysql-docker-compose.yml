@@ -1,6 +1,6 @@
 services:
     nopcommerce_web:
-        image: ghcr.io/babubahir/nopcommercerestapi:latest
+        build: .
         container_name: nopcommerce
         ports:
             - "80:80"
