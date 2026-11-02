@@ -56,6 +56,7 @@ namespace Nop.Plugin.Api.Rest.Infrastructure
                     Version = "v1",
                     Description = FrontendDescription
                 });
+                options.SchemaFilter<StoreProductOverviewSnakeCaseSchemaFilter>();
 
                 // (Optional) Include XML comments if you generate them for the plugin assembly
                 // var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
