@@ -1,9 +1,15 @@
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Nop.Core.Domain.Catalog;
+using Nop.Plugin.Api.Rest.Infrastructure;
 using Nop.Plugin.Api.Rest.Mappings;
 using Nop.Plugin.Api.Rest.Models;
 using Nop.Services.Catalog;
+using Nop.Services.Security;
 using Nop.Services.Stores;
+using Nop.Web.Factories;
 
 namespace Nop.Plugin.Api.Rest.Controllers;
 
@@ -19,7 +25,7 @@ namespace Nop.Plugin.Api.Rest.Controllers;
 /// </remarks>
 [ApiController]
 [Route("api/rest/store/products")]
-public class StoreProductsController : ControllerBase
+public class ProductController : ControllerBase
 {
     #region Fields
 
@@ -28,27 +34,145 @@ public class StoreProductsController : ControllerBase
     private readonly IManufacturerService _manufacturerService;
     private readonly IProductTagService _productTagService;
     private readonly IStoreMappingService _storeMappingService;
+    private readonly IAclService _aclService;
+    private readonly IProductModelFactory _productModelFactory;
 
     #endregion
 
     #region Ctor
 
-    public StoreProductsController(IProductService productService,
+    public ProductController(IProductService productService,
         IProductAttributeService productAttributeService,
         IManufacturerService manufacturerService,
         IProductTagService productTagService,
-        IStoreMappingService storeMappingService)
+        IStoreMappingService storeMappingService,
+        IAclService aclService,
+        IProductModelFactory productModelFactory)
     {
         _productService = productService;
         _productAttributeService = productAttributeService;
         _manufacturerService = manufacturerService;
         _productTagService = productTagService;
         _storeMappingService = storeMappingService;
+        _aclService = aclService;
+        _productModelFactory = productModelFactory;
     }
 
     #endregion
 
     #region Methods
+
+    /// <summary>
+    /// Returns the products featured on the store homepage
+    /// </summary>
+    [HttpGet("home-page")]
+    public async Task<ActionResult<List<StoreProductOverviewDto>>> GetHomePageProducts()
+    {
+        var products = await _productService.GetAllProductsDisplayedOnHomepageAsync();
+        var visibleProducts = new List<Product>();
+        var storeId = GetRequestedStoreId();
+
+        foreach (var product in products)
+        {
+            if (product.Published && !product.Deleted
+                && await _storeMappingService.AuthorizeAsync(product, storeId)
+                && await _aclService.AuthorizeAsync(product))
+                visibleProducts.Add(product);
+        }
+
+        return Ok(await _productModelFactory.PrepareStoreOverviewDtosAsync(visibleProducts));
+    }
+
+    /// <summary>
+    /// Returns products marked as new, newest first
+    /// </summary>
+    /// <param name="pageIndex">Zero-based page index</param>
+    /// <param name="pageSize">Page size, capped at 200</param>
+    [HttpGet("new")]
+    public async Task<ActionResult<PagedResult<StoreProductOverviewDto>>> GetNewProducts(
+        [FromQuery] int pageIndex = 0,
+        [FromQuery] int pageSize = PagingHelper.DEFAULT_PAGE_SIZE)
+    {
+        var products = await _productService.GetProductsMarkedAsNewAsync(
+            storeId: GetRequestedStoreId(),
+            pageIndex: PagingHelper.NormalizePageIndex(pageIndex),
+            pageSize: PagingHelper.NormalizePageSize(pageSize));
+
+        return Ok(await products.ToPagedStoreOverviewDtoAsync(_productModelFactory));
+    }
+
+    /// <summary>
+    /// Searches published products
+    /// </summary>
+    /// <param name="keywords">Optional words to search for</param>
+    /// <param name="categoryId">Optional category filter</param>
+    /// <param name="manufacturerId">Optional manufacturer filter</param>
+    /// <param name="priceMin">Optional minimum price</param>
+    /// <param name="priceMax">Optional maximum price</param>
+    /// <param name="pageIndex">Zero-based page index</param>
+    /// <param name="pageSize">Page size, capped at 200</param>
+    [HttpGet("search")]
+    public async Task<ActionResult<PagedResult<StoreProductOverviewDto>>> Search(
+        [FromQuery] string? keywords = null,
+        [FromQuery] int? categoryId = null,
+        [FromQuery] int? manufacturerId = null,
+        [FromQuery] decimal? priceMin = null,
+        [FromQuery] decimal? priceMax = null,
+        [FromQuery] int pageIndex = 0,
+        [FromQuery] int pageSize = PagingHelper.DEFAULT_PAGE_SIZE)
+    {
+        if (priceMin < 0 || priceMax < 0 || priceMin > priceMax)
+            return BadRequest(new { error = "The price range is invalid." });
+
+        var products = await _productService.SearchProductsAsync(
+            pageIndex: PagingHelper.NormalizePageIndex(pageIndex),
+            pageSize: PagingHelper.NormalizePageSize(pageSize),
+            categoryIds: categoryId is > 0 ? new List<int> { categoryId.Value } : null,
+            manufacturerIds: manufacturerId is > 0 ? new List<int> { manufacturerId.Value } : null,
+            storeId: GetRequestedStoreId(),
+            visibleIndividuallyOnly: true,
+            priceMin: priceMin,
+            priceMax: priceMax,
+            keywords: keywords,
+            searchDescriptions: true,
+            showHidden: false,
+            overridePublished: true);
+
+        return Ok(await products.ToPagedStoreOverviewDtoAsync(_productModelFactory));
+    }
+
+    /// <summary>
+    /// Returns the published products related
+    /// </summary>
+    /// <param name="id">The product identifier</param>
+    [HttpGet("{id:int}/related")]
+    public async Task<ActionResult<List<StoreProductOverviewDto>>> GetRelatedProducts(int id)
+    {
+        var product = await _productService.GetProductByIdAsync(id);
+        if (product == null || !product.Published || product.Deleted
+            || !await _storeMappingService.AuthorizeAsync(product, GetRequestedStoreId())
+            || !await _aclService.AuthorizeAsync(product))
+            return NotFound();
+
+        var related = await _productService.GetRelatedProductsByProductId1Async(id);
+        var relatedIds = related.Select(item => item.ProductId2).Distinct().ToArray();
+        var products = await _productService.GetProductsByIdsAsync(relatedIds);
+        var productsById = products.ToDictionary(item => item.Id);
+        var result = new List<Product>();
+
+        foreach (var relatedProduct in related)
+        {
+            if (!productsById.TryGetValue(relatedProduct.ProductId2, out var item)
+                || !item.Published || item.Deleted
+                || !await _storeMappingService.AuthorizeAsync(item, GetRequestedStoreId())
+                || !await _aclService.AuthorizeAsync(item))
+                continue;
+
+            result.Add(item);
+        }
+
+        return Ok(await _productModelFactory.PrepareStoreOverviewDtosAsync(result));
+    }
 
     /// <summary>
     /// Returns a published product as a storefront client sees it
