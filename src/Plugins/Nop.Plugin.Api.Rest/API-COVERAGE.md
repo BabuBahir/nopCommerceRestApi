@@ -136,16 +136,18 @@ Exposing a customer create or update that accepts a role would let any key holde
 Administrators. Role assignment should go behind `CustomerRole` with an explicit gate, not ride along in
 the customer payload.
 
-## Phase 5 — Storefront suite (TODO)
+## Phase 5 — Storefront suite (PARTIAL)
 
-Unblocked by the customer token from Phase 3. All of these need a caller identity, which the customer
-token now supplies.
+The local v4.90.1 frontend spec contains 221 operations across 214 paths for storefront catalog,
+product, account, cart, checkout, and content features. The initial mobile-focused catalog/product read
+endpoints and customer-token cart operations are implemented below; the rest of the official suite
+remains out of scope for this phase.
 
 | Area | Official ops | Official route | Status |
 |---|---|---|---|
-| Catalog | 22 | `api-frontend/Catalog/*` | TODO |
-| Product (public) | 17 | `api-frontend/Product/*` | PARTIAL (1 of 17) |
-| Shopping cart | 15 | `api-frontend/ShoppingCart/*` | TODO |
+| Catalog | 22 | `api-frontend/Catalog/*` | PARTIAL — homepage categories, category listing/details/products, manufacturer listing/products; product lists use the full storefront overview response |
+| Product (public) | 17 | `api-frontend/Product/*` | PARTIAL — product details, homepage products, new products, related products, search; list responses include price, pictures, specifications, reviews, and wishlist data |
+| Shopping cart | 15 | `api-frontend/ShoppingCart/*` | PARTIAL — read cart, add/update/remove item |
 | Checkout | 20 | `api-frontend/Checkout/*` | TODO |
 | Download | 9 | `api-frontend/Download/*` | TODO |
 | Private messages | 8 | `api-frontend/PrivateMessages/*` | TODO |
