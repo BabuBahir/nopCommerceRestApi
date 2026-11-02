@@ -320,8 +320,17 @@ Every route lives under a single `/api/rest` prefix. This is deliberately **not*
 | **Public store, catalog** | `/api/rest/store/*` | anonymous while "Require a credential for reads" is off; customer token once it is on | API key and admin token → `403` |
 | **Token endpoints** | `/api/rest/token`, `/api/rest/customer/token` | none — they are how you obtain a credential | — |
 
-The two scopes are enforced against each other, not merely labelled. Both tokens are signed with the same
-key, so without that check the scope claim would be decorative.
+* The product is being developed and supported by the professional team since 2008.
+* nopCommerce has been downloaded more than 3,000,000 times.
+* The active developer community has more than 250,000 members.
+* nopCommerce runs on .NET 10 with an MS SQL 2012 (or higher) backend database.
+* nopCommerce is cross-platform, and you can run it on Windows, Linux, or Mac.
+* nopCommerce supports Docker out of the box, so you can easily run nopCommerce on a Linux machine.
+* nopCommerce supports PostgreSQL and MySQL databases.
+* nopCommerce fully supports web farms. You can read more about it [here](https://docs.nopcommerce.com/en/developer/tutorials/web-farms.html?utm_source=github&utm_medium=referral&utm_campaign=documentation&utm_content=text).  
+* All methods in nopCommerce are async.
+* nopCommerce supports multi-factor authentication out of the box.
+* Start our [online course for developers](https://nopcommerce.com/training?utm_source=github&utm_medium=referral&utm_campaign=course&utm_content=text) and get the practical and technical skills you need to run and customize nopCommerce websites.
 
 Every `customer/me` route takes the customer **from the credential itself**. There is no customer
 identifier anywhere in those paths, query strings or bodies, so a caller cannot reach another shopper's
