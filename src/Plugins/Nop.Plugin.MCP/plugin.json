@@ -3,7 +3,7 @@
   "FriendlyName": "MCP (Model Context Protocol)",
   "SystemName": "Misc.Mcp",
   "Version": "1.00",
-  "SupportedVersions": [ "5.00" ],
+  "SupportedVersions": [ "5.10" ],
   "Author": "https://github.com/BabuBahir",
   "DisplayOrder": 1,
   "FileName": "Nop.Plugin.Misc.Mcp.dll",
