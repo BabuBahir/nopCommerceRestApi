@@ -24,7 +24,6 @@ x64/
 [Oo]ut/
 
 # Visual Studio Code files
-.vscode/
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
@@ -207,3 +206,5 @@ src/Presentation/Nop.Web/wwwroot/sitemaps/*
 !src/Presentation/Nop.Web/wwwroot/sitemaps/Index.htm
 src/packages/*
 src/Tests/Nop.Tests/Connections.resx
+config.bat
+node_modules
