@@ -1,0 +1,138 @@
+name: CSharp Accessibility Audit
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  accessibility-audit:
+    name: C# Accessibility Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Verify solution
+        shell: bash
+        run: |
+          test -f src/NopCommerce.sln || {
+            echo "::error::src/NopCommerce.sln not found"
+            exit 1
+          }
+
+      - name: Enable internal accessibility inspection
+        shell: bash
+        run: |
+          # Enable ReSharper's normally-disabled "Member or type can be made internal" inspection.
+          # This changes only the CI workspace, not the repository commit.
+          touch src/.editorconfig
+          if ! grep -q 'resharper_member_can_be_internal_highlighting' src/.editorconfig; then
+            echo '' >> src/.editorconfig
+            echo '[*.cs]' >> src/.editorconfig
+            echo 'resharper_member_can_be_internal_highlighting = suggestion' >> src/.editorconfig
+          fi
+
+      - name: Run ReSharper InspectCode
+        id: inspect
+        continue-on-error: true
+        uses: JetBrains/ReSharper-InspectCode@v0.13
+        with:
+          solution: ./src/NopCommerce.sln
+          tool-version: 2026.1.0.1
+          dotnet-version: '10.x'
+          swea: true
+          format: Xml
+          output: ${{ github.workspace }}/inspectcode-report.xml
+
+      - name: Filter accessibility findings
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+
+          source = "inspectcode-report.xml"
+          destination = "accessibility-report.xml"
+
+          # Exact ReSharper inspection IDs.
+          wanted = {
+              "MemberCanBePrivate.Global",
+              "MemberCanBePrivate.Local",
+              "MemberCanBeProtected.Global",
+              "MemberCanBeProtected.Local",
+              "MemberCanBeInternal",
+          }
+
+          report = ET.Element("AccessibilityAudit")
+          output_types = ET.SubElement(report, "IssueTypes")
+          output_issues = ET.SubElement(report, "Issues")
+
+          if not os.path.isfile(source):
+              print("InspectCode did not generate its XML report.")
+              print("Check the InspectCode step for the original error.")
+              ET.ElementTree(report).write(
+                  destination, encoding="utf-8", xml_declaration=True
+              )
+              raise SystemExit(0)
+
+          root = ET.parse(source).getroot()
+
+          issue_types = {}
+          for item in root.iter("IssueType"):
+              issue_id = item.attrib.get("Id", "")
+              if issue_id in wanted:
+                  issue_types[issue_id] = item.attrib.copy()
+
+          for issue_id in sorted(issue_types):
+              ET.SubElement(output_types, "IssueType", issue_types[issue_id])
+
+          count = 0
+          for issue in root.iter("Issue"):
+              if issue.attrib.get("TypeId", "") in wanted:
+                  output_issues.append(issue)
+                  count += 1
+
+          ET.ElementTree(report).write(
+              destination, encoding="utf-8", xml_declaration=True
+          )
+
+          print("Selected inspection IDs:")
+          for issue_id in sorted(issue_types):
+              print(f"  {issue_id}")
+
+          print(f"Accessibility findings: {count}")
+          print(f"Filtered report: {destination}")
+          PY
+
+      - name: Upload accessibility audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: csharp-accessibility-audit
+          path: |
+            accessibility-report.xml
+            inspectcode-report.xml
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Fail if InspectCode failed
+        if: steps.inspect.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::error::InspectCode failed. The audit may be incomplete; review its logs."
+          exit 1
