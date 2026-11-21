@@ -17,6 +17,7 @@ RUN dotnet publish Nop.Web.csproj -c Release -o /app/published
 WORKDIR /app/published
 
 RUN mkdir logs bin
+RUN chown -R app:app /app
 
 RUN chmod 775 App_Data \
               App_Data/DataProtectionKeys \
@@ -30,7 +31,7 @@ RUN chmod 775 App_Data \
               wwwroot/images \
               wwwroot/images/thumbs \
               wwwroot/images/uploaded \
-	      wwwroot/sitemaps
+			  wwwroot/sitemaps
 
 # create the runtime instance 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime 
@@ -50,4 +51,5 @@ COPY --from=build /app/published .
 
 EXPOSE 80
 
-ENTRYPOINT ["sh", "-c", "echo \"Render PORT is this=$PORT\"; exec dotnet Nop.Web.dll --urls \"http://0.0.0.0:${PORT:-80}\""]
+USER app
+ENTRYPOINT ["dotnet", "Nop.Web.dll"]
