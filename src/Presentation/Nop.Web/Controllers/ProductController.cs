@@ -12,6 +12,7 @@ using Nop.Services.Customers;
 using Nop.Services.Html;
 using Nop.Services.Localization;
 using Nop.Services.Logging;
+using Nop.Services.Media;
 using Nop.Services.Messages;
 using Nop.Services.Orders;
 using Nop.Services.Security;
@@ -54,6 +55,7 @@ public partial class ProductController : BasePublicController
     protected readonly IStoreContext _storeContext;
     protected readonly IStoreMappingService _storeMappingService;
     protected readonly IWorkContext _workContext;
+    protected readonly IPictureService _pictureService;
     protected readonly IWorkflowMessageService _workflowMessageService;
     protected readonly LocalizationSettings _localizationSettings;
     protected readonly ShoppingCartSettings _shoppingCartSettings;
@@ -87,6 +89,7 @@ public partial class ProductController : BasePublicController
         IStoreContext storeContext,
         IStoreMappingService storeMappingService,
         IWorkContext workContext,
+        IPictureService pictureService,
         IWorkflowMessageService workflowMessageService,
         LocalizationSettings localizationSettings,
         ShoppingCartSettings shoppingCartSettings,
@@ -116,6 +119,7 @@ public partial class ProductController : BasePublicController
         _storeContext = storeContext;
         _storeMappingService = storeMappingService;
         _workContext = workContext;
+        _pictureService = pictureService;
         _workflowMessageService = workflowMessageService;
         _localizationSettings = localizationSettings;
         _shoppingCartSettings = shoppingCartSettings;
@@ -579,4 +583,51 @@ public partial class ProductController : BasePublicController
     }
 
     #endregion
+
+    [HttpGet]
+    public virtual async Task<IActionResult> GetProductsByName(string name, int limit = 10)
+    {
+        if (string.IsNullOrWhiteSpace(name) || limit <= 0)
+            return Json(new List<object>());
+
+        if (limit > 50)
+            limit = 50;
+
+        var storeId = (await _storeContext.GetCurrentStoreAsync()).Id;
+        var customer = await _workContext.GetCurrentCustomerAsync();
+
+        var products = await _productService.SearchProductsAsync(
+            pageIndex: 0,
+            pageSize: limit,
+            storeId: storeId,
+            keywords: name,
+            visibleIndividuallyOnly: true,
+            showHidden: false,
+            overridePublished: true);
+
+        var result = new List<object>(products.Count);
+        foreach (var p in products)
+        {
+            if (!await _aclService.AuthorizeAsync(p, customer))
+                continue;
+            if (!await _storeMappingService.AuthorizeAsync(p, storeId))
+                continue;
+            if (!_productService.ProductIsAvailable(p))
+                continue;
+
+            var picture = await _pictureService.GetProductPictureAsync(p, null);
+            var pictureUrl = picture != null ? await _pictureService.GetPictureUrlAsync(picture.Id, 50) : string.Empty;
+            result.Add(new
+            {
+                id = p.Id,
+                name = p.Name,
+                sku = p.Sku,
+                published = p.Published,
+                pictureId = picture?.Id ?? 0,
+                pictureUrl
+            });
+        }
+
+        return Json(result);
+    }
 }
